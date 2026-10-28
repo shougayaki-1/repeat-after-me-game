@@ -35,7 +35,10 @@
     textarea { width:100%; display:block; border:1px solid #d6dceb; border-radius:13px; resize:vertical; min-height:106px; padding:16px; background:#fafbff; color:var(--ink); font:700 16px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; transition:border-color .2s,box-shadow .2s; }
     textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(71,89,221,.09); outline:none; }
     .help { color:var(--muted); font-size:11px; margin:8px 0 18px; }
-    .samples { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:23px; }
+    .samples { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+    .random-btn { width:100%; padding:11px 13px; border:1px dashed #a8b5eb; background:#f4f6ff; color:#3547bb; font-size:12px; font-weight:800; border-radius:11px; transition:background .15s,border-color .15s; }
+    .random-btn:hover { background:#e9edff; border-color:#697de2; }
+    .random-hint { color:#7b849a; font-size:11px; margin:7px 0 20px; }
     .sample { border:1px solid #e2e6f0; border-radius:9px; background:white; padding:7px 9px; font:700 11px ui-monospace, monospace; color:#515c78; transition:background .15s,border-color .15s; }
     .sample:hover { background:#f0f2ff; border-color:#a9b4ed; }
     .config { padding-top:19px; border-top:1px solid var(--border); display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:22px; }
@@ -96,7 +99,13 @@
     .round[open] { border-color:#c9d1f7; box-shadow:0 4px 18px rgba(56,72,150,.06); }
     .round summary { padding:15px 17px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; list-style:none; }
     .round summary::-webkit-details-marker { display:none; }
-    .round-summary-start { display:flex; gap:13px; align-items:center; min-width:0; }
+    .round-summary-start { display:flex; gap:13px; align-items:flex-start; min-width:0; flex:1; }
+    .round-title { min-width:0; flex:1; }
+    .round-result-preview { display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin-top:10px; padding:9px 11px; background:#f8f9ff; border:1px solid #edf0f9; border-radius:10px; }
+    .round-preview-label { font-size:10px; font-weight:800; color:#64708b; white-space:nowrap; }
+    .round-result-preview .token-line { gap:4px; min-width:0; }
+    .round-result-preview .token { font-size:11px; padding:3px 6px; border-radius:6px; }
+    .round-result-preview .omitted { font-size:10px; }
     .round-num { border-radius:9px; width:38px; height:38px; flex:0 0 38px; display:grid; place-items:center; background:#eef1ff; color:#495bd9; font:800 13px ui-monospace,monospace; }
     .round-title strong { display:block; color:#2c3553; font-size:12px; margin-bottom:3px; }
     .round-title small { display:block; color:#8a92a6; font-size:11px; }
@@ -153,6 +162,8 @@
         <button type="button" class="sample" data-example="RAM RAM RAM">循環例</button>
         <button type="button" class="sample" data-example="nRAM nRAM">nRAM変換</button>
       </div>
+      <button id="random-input" class="random-btn" type="button">🎲 ランダム入力して計算</button>
+      <p class="random-hint">3〜7トークンをランダム生成し、すぐに計算します。</p>
       <div class="config">
         <div><label for="max-rounds">最大ラウンド数</label><select id="max-rounds"><option>10</option><option>20</option><option selected>30</option><option>50</option></select></div>
         <div><label for="max-tokens">最大トークン数</label><select id="max-tokens"><option>1000</option><option>5000</option><option selected>10000</option></select></div>
@@ -194,7 +205,7 @@
         <div id="chart-area" class="chart-area" hidden><div class="chart-caption"><span>ラウンド別のトークン数</span><span id="chart-max" class="mono"></span></div><svg class="chart-svg" id="chart" viewBox="0 0 600 74" preserveAspectRatio="none" aria-label="ラウンド別トークン数の推移" role="img"></svg></div>
       </section>
       <section class="panel history-panel" aria-label="計算履歴">
-        <div class="history-title"><div><h2>処理のタイムライン</h2><p class="subtitle">各ラウンドを開くと、命令ごとの変換過程を確認できます。</p></div><span class="history-count" id="history-count">0 ROUNDS</span></div>
+        <div class="history-title"><div><h2>処理のタイムライン</h2><p class="subtitle">各ラウンドの結果を一覧表示。開くと命令ごとの変換過程も確認できます。</p></div><span class="history-count" id="history-count">0 ROUNDS</span></div>
         <div id="history" class="round-list"><div class="empty"><div class="empty-icon">↻</div><h3>ここに計算過程が表示されます</h3><p>まずは左の「まとめて計算」を押してください。</p></div></div>
       </section>
     </div>
@@ -304,8 +315,26 @@
   function runAll() {
     if (!initialize()) return;
     while (sim.status === 'running') doStep();
-    sim.expanded = new Set(sim.history.length ? [1] : []);
+    sim.expanded = new Set();
     render();
+  }
+
+  // Generate a varied example with at least one command that has a nonempty suffix.
+  // Avoid repeating the currently visible input when possible.
+  function randomInput() {
+    const alphabet = ['RAM', 'nRAM', 'KON', 'nKON'];
+    const previous = $('source').value.trim().replace(/\s+/gu, ' ');
+    let tokens;
+    for (let attempt = 0; attempt < 16; attempt++) {
+      const length = 3 + Math.floor(Math.random() * 5);
+      tokens = Array.from({length}, () => alphabet[Math.floor(Math.random() * alphabet.length)]);
+      if (!tokens.slice(0, -1).some(t => t === 'RAM' || t === 'nRAM')) {
+        tokens[Math.floor(Math.random() * (length - 1))] = Math.random() < 0.5 ? 'RAM' : 'nRAM';
+      }
+      if (tokens.join(' ') !== previous) break;
+    }
+    $('source').value = tokens.join(' ');
+    runAll();
   }
   function nextStep() {
     if (!sim.started || sim.status !== 'running') {
@@ -378,7 +407,8 @@
     const count = item.commands.length;
     return `<details class="round" data-round="${item.round}"${expanded?' open':''}>
       <summary><div class="round-summary-start"><span class="round-num">${String(item.round).padStart(2,'0')}</span>
-      <span class="round-title"><strong>ROUND ${item.round}</strong><small>${formatNum(count)}命令 · ${formatNum(item.before.length)} → ${formatNum(item.after.length)}トークン</small></span></div>
+      <span class="round-title"><strong>ROUND ${item.round}</strong><small>${formatNum(count)}命令 · ${formatNum(item.before.length)} → ${formatNum(item.after.length)}トークン</small>
+      <span class="round-result-preview"><span class="round-preview-label">結果</span><span class="token-line">${showTokens(item.after, 18)}</span></span></span></div>
       <span class="chevron" aria-hidden="true">⌄</span></summary>
       <div class="round-details">${expanded?roundBodyHtml(item):''}</div></details>`;
   }
@@ -427,6 +457,7 @@
   }
 
   $('run-all').addEventListener('click',runAll);
+  $('random-input').addEventListener('click',randomInput);
   $('step').addEventListener('click',nextStep);
   $('reset').addEventListener('click',()=>{sim=freshState();setWarning('');render();});
   $('copy-result').addEventListener('click',copyResult);
