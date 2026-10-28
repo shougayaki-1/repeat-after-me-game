@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6fb">
+  <title>Repeat After Me — 文字列変換シミュレーター</title>
+  <style>
+    :root { --bg:#f6f7fb; --paper:#fff; --ink:#151a30; --muted:#687086; --border:#e2e6f0; --blue:#4759dd; --blue-pale:#edf0ff; --violet:#8257ca; --violet-pale:#f5eeff; --mint:#207f69; --mint-pale:#e9f7f1; --rose:#b94b75; --rose-pale:#fff0f6; --shadow:0 15px 50px rgba(31,42,77,.045); }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif; line-height:1.55; }
+    button,textarea,select { font:inherit; }
+    button { cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.46; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline:3px solid #abb6ff; outline-offset:3px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    .page { max-width:1270px; margin:auto; padding:26px 28px 74px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:23px; }
+    .brand { display:flex; align-items:center; gap:11px; font-size:15px; font-weight:800; letter-spacing:-.035em; }
+    .logo { height:37px; width:37px; border-radius:13px; display:grid; place-items:center; background:var(--ink); color:white; font:800 16px ui-monospace,monospace; transform:rotate(-4deg); }
+    .top-meta { color:var(--muted); font-size:12px; font-weight:600; }
+    .hero { position:relative; overflow:hidden; border-radius:24px; background:#191e39; padding:32px 39px 35px; color:white; margin-bottom:22px; box-shadow:0 18px 40px rgba(16,22,56,.09); }
+    .hero::before { content:""; position:absolute; pointer-events:none; width:410px; height:410px; right:-65px; top:-270px; border-radius:50%; background:linear-gradient(130deg,rgba(142,123,255,.5),rgba(85,147,232,.08)); filter:blur(8px); }
+    .hero::after { content:"RAM  →  nRAM  →  KON"; position:absolute; right:41px; bottom:24px; color:#a0a7db; opacity:.36; font:700 15px ui-monospace, monospace; letter-spacing:3px; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.17em; font-size:10px; color:#bec6ff; font-weight:800; margin-bottom:10px; }
+    h1 { font-size:clamp(26px,3.1vw,38px); line-height:1.24; margin:0 0 12px; letter-spacing:-.047em; font-weight:820; }
+    .hero p { margin:0; font-size:13px; color:#c6cbe2; max-width:630px; line-height:1.9; }
+    .layout { display:grid; grid-template-columns:minmax(320px,372px) minmax(0,1fr); gap:22px; align-items:start; }
+    .panel { background:var(--paper); border:1px solid var(--border); box-shadow:var(--shadow); border-radius:20px; }
+    .control { padding:23px; position:sticky; top:20px; }
+    .panel-title { display:flex; align-items:center; justify-content:space-between; font-weight:800; font-size:16px; letter-spacing:-.025em; margin-bottom:17px; }
+    .step-note { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:11px; font-weight:650; }
+    .dot { background:var(--blue); width:7px; height:7px; border-radius:100%; display:inline-block; }
+    .field-label { display:block; font-size:12px; color:#4f596f; font-weight:780; margin:0 0 9px; }
+    textarea { width:100%; display:block; border:1px solid #d6dceb; border-radius:13px; resize:vertical; min-height:106px; padding:16px; background:#fafbff; color:var(--ink); font:700 16px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; transition:border-color .2s,box-shadow .2s; }
+    textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(71,89,221,.09); outline:none; }
+    .help { color:var(--muted); font-size:11px; margin:8px 0 18px; }
+    .samples { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:23px; }
+    .sample { border:1px solid #e2e6f0; border-radius:9px; background:white; padding:7px 9px; font:700 11px ui-monospace, monospace; color:#515c78; transition:background .15s,border-color .15s; }
+    .sample:hover { background:#f0f2ff; border-color:#a9b4ed; }
+    .config { padding-top:19px; border-top:1px solid var(--border); display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:22px; }
+    .config label { display:block; font-size:11px; font-weight:750; color:#566078; margin-bottom:6px; }
+    select { width:100%; background:#fbfcff; border:1px solid #dce1ee; border-radius:11px; color:#25304c; font-size:13px; font-weight:750; padding:10px 28px 10px 11px; }
+    .actions { display:grid; gap:9px; }
+    .primary { background:#4354d6; color:white; border:1px solid #4354d6; border-radius:12px; font-weight:800; padding:13px 12px; font-size:13px; box-shadow:0 7px 18px rgba(71,89,221,.18); }
+    .primary:hover:not(:disabled) { background:#3445c4; }
+    .row-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .secondary { background:#fff; color:#323d60; border:1px solid #dce1ee; padding:11px 10px; border-radius:11px; font-size:12px; font-weight:800; }
+    .secondary:hover:not(:disabled) { background:#f4f6ff; border-color:#b9c2e5; }
+    .secondary.emphasis { background:#eff2ff; border-color:#d2d9ff; color:#3547ca; }
+    .warning { padding:11px 13px; background:#fff4ee; border:1px solid #f9d8c7; border-radius:11px; color:#9c4c2a; font-size:12px; margin-top:13px; display:none; }
+    .warning.show { display:block; }
+    .rules { border-top:1px solid var(--border); margin-top:24px; padding-top:18px; }
+    .rules summary { color:#3b4763; font-size:12px; font-weight:800; cursor:pointer; user-select:none; }
+    .rules-content { padding-top:12px; color:#4e5970; font-size:12px; }
+    .rules-content p { margin:8px 0; }
+    .rule-grid { display:grid; grid-template-columns:auto 1fr; gap:7px 11px; align-items:center; padding:9px 0; }
+    .right { min-width:0; display:grid; gap:16px; }
+    .summary { padding:23px 25px 24px; }
+    .summary-header { display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .status { border-radius:999px; background:#eff2ff; color:#4050b5; padding:6px 10px; display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:800; }
+    .status.done { background:var(--mint-pale); color:var(--mint); }
+    .status.cycle { background:var(--violet-pale); color:var(--violet); }
+    .status.limit { background:#fff3e8; color:#ad642e; }
+    .status.idle { background:#eef0f4; color:#788096; }
+    .status .dot { background:currentColor; }
+    .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    .metric { padding:13px 15px; border-right:1px solid var(--border); min-width:0; }
+    .metric:last-child { border-right:none; }
+    .metric small { display:block; color:var(--muted); font-size:10px; font-weight:700; margin-bottom:4px; }
+    .metric strong { font:800 25px/1.3 ui-monospace, Menlo, monospace; letter-spacing:-.06em; }
+    .result-zone { margin-top:18px; border:1px solid #e2e7f0; background:linear-gradient(135deg,#fafbff 0%,#f5f7ff 100%); border-radius:15px; padding:18px; }
+    .result-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .result-head span { color:#5d6780; font-size:11px; font-weight:800; }
+    .mini-btn { border:1px solid #d7ddef; background:white; border-radius:8px; padding:6px 9px; color:#3e4a6e; font-size:10px; font-weight:750; }
+    .mini-btn:hover { background:#eef1ff; }
+    .token-line { display:flex; flex-wrap:wrap; gap:6px; align-items:center; line-height:1.8; max-width:100%; }
+    .token { display:inline-block; font:800 13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace; border-radius:7px; padding:5px 7px; border:1px solid transparent; white-space:nowrap; }
+    .token-RAM { background:var(--blue-pale); color:#4253d0; border-color:#dce2ff; }
+    .token-nRAM { background:var(--violet-pale); color:#804bbc; border-color:#eadbff; }
+    .token-KON { background:var(--mint-pale); color:#237e66; border-color:#d1eee0; }
+    .token-nKON { background:var(--rose-pale); color:#b34d76; border-color:#f6d9e5; }
+    .null { color:#8790a4; font:700 13px ui-monospace, Menlo, monospace; }
+    .omitted { color:#737c92; font:700 11px ui-monospace,monospace; padding:5px 2px; }
+    .status-explain { margin:11px 0 0; color:#6e778e; font-size:11px; line-height:1.7; }
+    .chart-area { margin-top:19px; }
+    .chart-caption { color:#67718a; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+    .chart-svg { width:100%; height:74px; display:block; overflow:visible; }
+    .history-panel { padding:24px 25px; }
+    .history-title { display:flex; justify-content:space-between; gap:12px; align-items:start; margin-bottom:16px; }
+    h2 { margin:0; font-size:16px; letter-spacing:-.025em; }
+    .subtitle { color:#7c859b; font-size:11px; margin:5px 0 0; }
+    .history-count { color:#8b92a5; font:800 11px ui-monospace,monospace; margin-top:3px; }
+    .round-list { display:grid; gap:11px; }
+    .round { background:#fff; border:1px solid #e3e7f1; border-radius:14px; overflow:hidden; }
+    .round[open] { border-color:#c9d1f7; box-shadow:0 4px 18px rgba(56,72,150,.06); }
+    .round summary { padding:15px 17px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; list-style:none; }
+    .round summary::-webkit-details-marker { display:none; }
+    .round-summary-start { display:flex; gap:13px; align-items:center; min-width:0; }
+    .round-num { border-radius:9px; width:38px; height:38px; flex:0 0 38px; display:grid; place-items:center; background:#eef1ff; color:#495bd9; font:800 13px ui-monospace,monospace; }
+    .round-title strong { display:block; color:#2c3553; font-size:12px; margin-bottom:3px; }
+    .round-title small { display:block; color:#8a92a6; font-size:11px; }
+    .chevron { color:#9099ad; flex:0 0 auto; display:inline-block; transition:transform .18s; }
+    .round[open] .chevron { transform:rotate(180deg); }
+    .round-details { padding:0 17px 17px; border-top:1px solid #edf0f6; }
+    .io { padding:15px 0; display:grid; gap:7px; }
+    .io .field-label { margin:0; }
+    .arrow-note { color:#8490b0; font-size:11px; font-weight:750; display:flex; align-items:center; gap:6px; }
+    .command-list { border-top:1px dashed #dde3f0; padding-top:13px; display:grid; gap:11px; }
+    .command { background:#f8f9fd; border:1px solid #e9ecf4; border-radius:12px; padding:12px 13px; }
+    .command-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+    .command-heading strong { font-size:12px; }
+    .command-heading span { color:#818ba2; font-size:10px; }
+    .command-grid { display:grid; grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr); gap:7px; align-items:center; }
+    .command-grid label { display:block; color:#8c93a5; font-size:10px; margin-bottom:6px; font-weight:750; }
+    .command-grid .token { font-size:11px; padding:4px 6px; }
+    .command-grid .token-line { gap:4px; }
+    .command-arrow { text-align:center; font-size:20px; color:#a6afc4; }
+    .combined { margin-top:14px; background:#f1f3ff; padding:13px; border-radius:11px; }
+    .combined .field-label { color:#6877b8; margin-bottom:8px; }
+    .small-note { font-size:11px; color:#828ba0; margin-top:9px; }
+    .empty { padding:37px 20px 33px; text-align:center; color:#7a849a; }
+    .empty .empty-icon { font-size:28px; opacity:.5; }
+    .empty h3 { margin:10px 0 5px; color:#535e77; font-size:14px; }
+    .empty p { margin:0; font-size:12px; }
+    .footer { padding-top:20px; margin-top:6px; display:flex; gap:12px; justify-content:space-between; color:#9098aa; font-size:11px; }
+    @media (max-width: 920px) { .layout { grid-template-columns:minmax(0,1fr); } .control { position:static; } .hero::after { display:none; } .control .actions { grid-template-columns:1fr 1fr; } .control .actions>.primary { grid-column:span 2; } }
+    @media (max-width: 600px) { .page { padding:15px 12px 44px; } .topbar { margin-bottom:13px; padding:0 4px; } .top-meta { display:none; } .hero { border-radius:18px; padding:26px 21px; margin-bottom:13px; } .hero p { font-size:12px; } .layout { gap:13px; } .control,.summary,.history-panel { padding:19px 16px; } .panel { border-radius:17px; } .metric { padding:11px 10px; } .metric strong { font-size:21px; } .command-grid { grid-template-columns:minmax(0,1fr); } .command-arrow { text-align:left; line-height:1; padding-left:4px; } .footer { flex-direction:column; gap:4px; } }
+    @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+  </style>
+</head>
+<body>
+<main class="page">
+  <div class="topbar">
+    <div class="brand"><span class="logo" aria-hidden="true">R↻</span>Repeat After Me <span style="color:#a0a8ba;font-weight:500">/ Simulator</span></div>
+    <div class="top-meta">SINGLE-FILE HTML · オフライン対応</div>
+  </div>
+  <header class="hero">
+    <div class="eyebrow">Token rewriting laboratory</div>
+    <h1>文字列が、次の文字列を生み出す。</h1>
+    <p>RAMとnRAMの命令をすべて同時に評価。右側の文字列を格納・変換しながら、終了するまでの過程を可視化します。</p>
+  </header>
+  <div class="layout">
+    <aside class="panel control" aria-label="計算設定">
+      <div class="panel-title">入力と設定 <span class="step-note"><i class="dot"></i>準備完了</span></div>
+      <label class="field-label" for="source">初期文字列</label>
+      <textarea class="mono" id="source" spellcheck="false" autocapitalize="off" autocomplete="off">RAM nRAM KON</textarea>
+      <p class="help">半角スペース・改行で区切って入力。使用可能：RAM / nRAM / KON / nKON</p>
+      <label class="field-label">サンプル入力</label>
+      <div class="samples">
+        <button type="button" class="sample" data-example="RAM nRAM KON">基本例</button>
+        <button type="button" class="sample" data-example="RAM RAM KON">複数命令</button>
+        <button type="button" class="sample" data-example="RAM RAM RAM">循環例</button>
+        <button type="button" class="sample" data-example="nRAM nRAM">nRAM変換</button>
+      </div>
+      <div class="config">
+        <div><label for="max-rounds">最大ラウンド数</label><select id="max-rounds"><option>10</option><option>20</option><option selected>30</option><option>50</option></select></div>
+        <div><label for="max-tokens">最大トークン数</label><select id="max-tokens"><option>1000</option><option>5000</option><option selected>10000</option></select></div>
+      </div>
+      <div class="actions">
+        <button id="run-all" class="primary" type="button">▶ まとめて計算</button>
+        <div class="row-actions">
+          <button id="step" class="secondary emphasis" type="button">次の1ラウンド →</button>
+          <button id="reset" class="secondary" type="button">↺ 計算をリセット</button>
+        </div>
+      </div>
+      <div class="warning" id="warning" role="alert"></div>
+      <details class="rules">
+        <summary>計算ルールを確認する</summary>
+        <div class="rules-content">
+          <p><strong>RAM</strong>：命令より右側にあるすべてのトークンを、そのまま出力。</p>
+          <p><strong>nRAM</strong>：命令より右側にあるすべてのトークンを、対応表に従って変換して出力。</p>
+          <div class="rule-grid"><span class="mono">RAM ↔ KON</span><span>互いに置換</span><span class="mono">nRAM ↔ nKON</span><span>互いに置換</span></div>
+          <p>1ラウンド内の全命令は、<strong>同じ元の文字列</strong>を参照。各出力を左から連結して、次のラウンドに進みます。</p>
+          <p>命令がなくなれば正常終了。循環・ラウンド上限・トークン上限は別々に判定します。</p>
+        </div>
+      </details>
+    </aside>
+    <div class="right">
+      <section class="panel summary" aria-label="計算結果">
+        <div class="summary-header">
+          <h2>計算結果</h2><div id="status" class="status idle"><i class="dot"></i>未実行</div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><small>実行ラウンド</small><strong id="metric-rounds">0</strong></div>
+          <div class="metric"><small>現在のトークン数</small><strong id="metric-tokens">—</strong></div>
+          <div class="metric"><small>実行した命令</small><strong id="metric-commands">0</strong></div>
+        </div>
+        <div class="result-zone">
+          <div class="result-head"><span id="result-label">現在の文字列</span><button id="copy-result" class="mini-btn" type="button" disabled>文字列をコピー</button></div>
+          <div class="token-line" id="result-content"><span class="null">入力待ち</span></div>
+          <p id="status-explain" class="status-explain">左側に文字列を入力し、計算方法を選んでください。</p>
+        </div>
+        <div id="chart-area" class="chart-area" hidden><div class="chart-caption"><span>ラウンド別のトークン数</span><span id="chart-max" class="mono"></span></div><svg class="chart-svg" id="chart" viewBox="0 0 600 74" preserveAspectRatio="none" aria-label="ラウンド別トークン数の推移" role="img"></svg></div>
+      </section>
+      <section class="panel history-panel" aria-label="計算履歴">
+        <div class="history-title"><div><h2>処理のタイムライン</h2><p class="subtitle">各ラウンドを開くと、命令ごとの変換過程を確認できます。</p></div><span class="history-count" id="history-count">0 ROUNDS</span></div>
+        <div id="history" class="round-list"><div class="empty"><div class="empty-icon">↻</div><h3>ここに計算過程が表示されます</h3><p>まずは左の「まとめて計算」を押してください。</p></div></div>
+      </section>
+    </div>
+  </div>
+  <footer class="footer"><span>Repeat After Me · Token rewriting simulator</span><span>処理はこのブラウザ内だけで実行されます。外部送信はありません。</span></footer>
+</main>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const VALID = new Map([['ram','RAM'], ['nram','nRAM'], ['kon','KON'], ['nkon','nKON']]);
+  const SWAP = Object.freeze({ RAM:'KON', KON:'RAM', nRAM:'nKON', nKON:'nRAM' });
+  const MAX_COMMAND_ROWS = 45;
+  let sim = freshState();
+
+  function freshState() {
+    return { started:false, current:[], history:[], seen:new Map(), status:'idle', reason:'', blocked:null,
+      expanded:new Set(), roundLimit:30, tokenLimit:10000, cycleStart:null, cycleLength:null };
+  }
+
+  function parseInput(source, tokenLimit) {
+    const raw = source.trim();
+    if (!raw) throw new Error('初期文字列を入力してください。');
+    const parts = raw.split(/\s+/u);
+    if (parts.length > tokenLimit) throw new Error(`初期文字列が${tokenLimit.toLocaleString('ja-JP')}トークンを超えています。`);
+    return parts.map((part, index) => {
+      const normalized = VALID.get(part.toLowerCase());
+      if (!normalized) throw new Error(`${index + 1}番目の「${part.slice(0, 30)}」は使用できません。RAM / nRAM / KON / nKONを入力してください。`);
+      return normalized;
+    });
+  }
+
+  // All commands read the same immutable input. Estimate total output before copying any suffixes.
+  function calculateRound(tokens, limit) {
+    const specifications = [];
+    let estimated = 0;
+    for (let i = 0; i < tokens.length; i++) {
+      const op = tokens[i];
+      if (op !== 'RAM' && op !== 'nRAM') continue;
+      const count = tokens.length - i - 1;
+      estimated += count;
+      specifications.push({ position:i + 1, op, start:i + 1, length:count });
+      if (estimated > limit) return { overflow:true, estimated, commands:specifications.length };
+    }
+    const output = [];
+    const commands = [];
+    for (const item of specifications) {
+      const source = tokens.slice(item.start);
+      const result = item.op === 'RAM' ? source.slice() : source.map(t => SWAP[t]);
+      output.push(...result);
+      commands.push({ position:item.position, op:item.op, source, result });
+    }
+    return { overflow:false, output, commands };
+  }
+
+  function initialize() {
+    setWarning('');
+    const roundLimit = Number($('max-rounds').value);
+    const tokenLimit = Number($('max-tokens').value);
+    let tokens;
+    try { tokens = parseInput($('source').value, tokenLimit); }
+    catch (error) { setWarning(error.message); return false; }
+    sim = freshState();
+    sim.started = true;
+    sim.current = tokens;
+    sim.roundLimit = roundLimit;
+    sim.tokenLimit = tokenLimit;
+    sim.seen.set(tokens.join('|'), 0);
+    if (!hasCommand(tokens)) { sim.status = 'done'; sim.reason = '初期文字列に命令がないため、0ラウンドで正常終了しました。'; }
+    else { sim.status = 'running'; sim.reason = '計算を開始しました。次のラウンドを実行できます。'; }
+    return true;
+  }
+
+  function hasCommand(tokens) { return tokens.includes('RAM') || tokens.includes('nRAM'); }
+
+  function doStep() {
+    if (!sim.started || sim.status !== 'running') return;
+    const before = sim.current;
+    const operation = calculateRound(before, sim.tokenLimit);
+    if (operation.overflow) {
+      sim.status = 'limit';
+      sim.blocked = { attempted:sim.history.length + 1, outputLength:operation.estimated };
+      sim.reason = `次のラウンドでは${operation.estimated.toLocaleString('ja-JP')}トークン以上になるため、${sim.tokenLimit.toLocaleString('ja-JP')}トークンの上限を超える前に停止しました。現在表示しているのは最後に計算できた文字列です。`;
+      return;
+    }
+    const round = sim.history.length + 1;
+    sim.current = operation.output;
+    sim.history.push({ round, before, after:sim.current, commands:operation.commands });
+    const signature = sim.current.join('|');
+    if (!hasCommand(sim.current)) {
+      sim.status = 'done';
+      sim.reason = sim.current.length === 0 ? '出力が空文字列（Null）になったため、正常終了しました。' : 'RAM / nRAMがなくなったため、正常終了しました。';
+    } else if (sim.seen.has(signature)) {
+      sim.status = 'cycle';
+      sim.cycleStart = sim.seen.get(signature);
+      sim.cycleLength = round - sim.cycleStart;
+      sim.reason = `ラウンド${sim.cycleStart}の文字列が再び現れました。周期${sim.cycleLength}の循環が確認できたため停止しました。`;
+    } else if (round >= sim.roundLimit) {
+      sim.status = 'limit';
+      sim.reason = `設定された最大${sim.roundLimit}ラウンドに達したため停止しました。さらに処理を続ければ終了する可能性があります。`;
+    } else {
+      sim.seen.set(signature, round);
+      sim.reason = `ラウンド${round}まで実行しました。次のラウンドに進めます。`;
+    }
+  }
+
+  function runAll() {
+    if (!initialize()) return;
+    while (sim.status === 'running') doStep();
+    sim.expanded = new Set(sim.history.length ? [1] : []);
+    render();
+  }
+  function nextStep() {
+    if (!sim.started || sim.status !== 'running') {
+      if (!initialize()) return;
+    }
+    if (sim.status === 'running') doStep();
+    sim.expanded = new Set(sim.history.length ? [sim.history.length] : []);
+    render();
+  }
+  function setWarning(message) { $('warning').textContent = message; $('warning').classList.toggle('show', !!message); }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function formatNum(n) { return n.toLocaleString('ja-JP'); }
+  function showTokens(tokens, threshold=68) {
+    if (!tokens.length) return '<span class="null">Null <span style="font-size:11px;font-weight:500">(空文字列)</span></span>';
+    let visible = tokens;
+    if (tokens.length > threshold) {
+      const first = Math.max(1, threshold - 10);
+      visible = [...tokens.slice(0, first), '__OMITTED__', ...tokens.slice(-10)];
+    }
+    return visible.map(t => t === '__OMITTED__'
+      ? `<span class="omitted">… ${formatNum(tokens.length - threshold)}個省略 …</span>`
+      : `<span class="token token-${t}">${escapeHtml(t)}</span>`).join('');
+  }
+  function updateMetrics() {
+    $('metric-rounds').textContent = formatNum(sim.history.length);
+    $('metric-tokens').textContent = sim.started ? formatNum(sim.current.length) : '—';
+    $('metric-commands').textContent = formatNum(sim.history.reduce((sum,r) => sum + r.commands.length, 0));
+    const definitions = {
+      idle:['未実行','idle'],running:['実行途中',''],done:['正常終了','done'],cycle:['循環検出','cycle'],limit:['処理上限で停止','limit']
+    };
+    const [label, css] = definitions[sim.status];
+    $('status').className = `status ${css}`;
+    $('status').innerHTML = '<i class="dot"></i>'+label;
+    $('result-label').textContent = sim.status === 'done' ? '最終結果' : sim.status === 'running' ? '現在の文字列（実行途中）' : sim.status === 'idle' ? '現在の文字列' : '停止時点の文字列';
+    $('result-content').innerHTML = sim.started ? showTokens(sim.current, 90) : '<span class="null">入力待ち</span>';
+    $('status-explain').textContent = sim.reason || '左側に文字列を入力し、計算方法を選んでください。';
+    $('copy-result').disabled = !sim.started;
+    $('step').disabled = sim.started && sim.status !== 'running';
+    $('step').textContent = sim.started && sim.status === 'running' ? '次の1ラウンド →' : sim.started ? '計算終了' : '次の1ラウンド →';
+    renderChart();
+  }
+  function renderChart() {
+    const area = $('chart-area');
+    area.hidden = !sim.started || sim.history.length === 0;
+    if (area.hidden) return;
+    const ys = [sim.history[0].before.length, ...sim.history.map(x=>x.after.length)];
+    const top = Math.max(1, ...ys);
+    $('chart-max').textContent = `最大 ${formatNum(top)} / ${ys.length - 1} ラウンド`;
+    const padL = 4, padR = 4, topPad = 8, bottom = 67;
+    const points = ys.map((val,i) => [padL + (i / Math.max(1,ys.length-1)) * (600-padL-padR), bottom - (val/top) * (bottom-topPad)]);
+    const path = points.map(x => x.map(v=>v.toFixed(2)).join(',')).join(' ');
+    const circles = ys.length <= 35 ? points.map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${i === ys.length-1 ? 3.5 : 2.3}" fill="${i === ys.length-1 ? '#4559d7' : '#8d9bf7'}"/>`).join('') : '';
+    $('chart').innerHTML = `<line x1="0" y1="67" x2="600" y2="67" stroke="#dce2f0" stroke-width="1"/><polyline fill="none" stroke="#5264db" stroke-width="2.5" vector-effect="non-scaling-stroke" points="${path}" stroke-linecap="round" stroke-linejoin="round"/>${circles}`;
+  }
+  function commandHtml(cmd,i) {
+    return `<div class="command"><div class="command-heading"><strong>命令 ${i+1}：<span class="mono">${cmd.op}</span></strong><span>元の文字列の ${cmd.position} 番目</span></div>
+      <div class="command-grid"><div><label>右側の変換対象 (${formatNum(cmd.source.length)}トークン)</label><div class="token-line">${showTokens(cmd.source,24)}</div></div>
+      <span class="command-arrow">→</span><div><label>${cmd.op==='RAM'?'そのまま出力':'変換して出力'}</label><div class="token-line">${showTokens(cmd.result,24)}</div></div></div></div>`;
+  }
+  function roundBodyHtml(item) {
+    const count = item.commands.length;
+    const shown = item.commands.slice(0, MAX_COMMAND_ROWS);
+    return `<div class="io"><span class="field-label">ラウンド開始時の文字列</span><div class="token-line">${showTokens(item.before)}</div></div>
+      <div class="arrow-note">↓ 命令を左から読み取り、同時評価</div>
+      <div class="command-list">${shown.map(commandHtml).join('')}${count > MAX_COMMAND_ROWS?`<div class="small-note">表示負荷を抑えるため、残り${formatNum(count-MAX_COMMAND_ROWS)}命令の詳細表示を省略しています。計算結果にはすべて反映済みです。</div>`:''}</div>
+      <div class="combined"><span class="field-label">各命令の出力を順番に連結 → 次のラウンド</span><div class="token-line">${showTokens(item.after)}</div></div>`;
+  }
+  function roundHtml(item) {
+    const expanded = sim.expanded.has(item.round);
+    const count = item.commands.length;
+    return `<details class="round" data-round="${item.round}"${expanded?' open':''}>
+      <summary><div class="round-summary-start"><span class="round-num">${String(item.round).padStart(2,'0')}</span>
+      <span class="round-title"><strong>ROUND ${item.round}</strong><small>${formatNum(count)}命令 · ${formatNum(item.before.length)} → ${formatNum(item.after.length)}トークン</small></span></div>
+      <span class="chevron" aria-hidden="true">⌄</span></summary>
+      <div class="round-details">${expanded?roundBodyHtml(item):''}</div></details>`;
+  }
+  function renderHistory() {
+    $('history-count').textContent = `${sim.history.length} ROUNDS`;
+    if (!sim.history.length) {
+      $('history').innerHTML = sim.started
+        ? '<div class="empty"><div class="empty-icon">✓</div><h3>実行する命令がありません</h3><p>初期文字列がそのまま最終結果です。</p></div>'
+        : '<div class="empty"><div class="empty-icon">↻</div><h3>ここに計算過程が表示されます</h3><p>左の「まとめて計算」または「次の1ラウンド」を押してください。</p></div>';
+      return;
+    }
+    $('history').innerHTML = sim.history.map(roundHtml).join('');
+    $('history').querySelectorAll('details.round').forEach(details=> {
+      details.addEventListener('toggle', () => {
+        const round = Number(details.dataset.round);
+        const body = details.querySelector('.round-details');
+        const item = sim.history[round - 1];
+        if (details.open) {
+          sim.expanded.add(round);
+          if (body && !body.hasChildNodes() && item) body.innerHTML = roundBodyHtml(item);
+        } else {
+          sim.expanded.delete(round);
+          if (body) body.replaceChildren();
+        }
+      });
+    });
+  }
+  function render() { updateMetrics(); renderHistory(); }
+
+  async function copyResult() {
+    if (!sim.started) return;
+    const text = sim.current.join(' ');
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      else {
+        const input = document.createElement('textarea');
+        input.value = text; input.style.position='fixed'; input.style.opacity='0';
+        document.body.append(input); input.select();
+        const worked = document.execCommand('copy'); input.remove();
+        if (!worked) throw new Error('copy unavailable');
+      }
+      const original = $('copy-result').textContent;
+      $('copy-result').textContent = 'コピーしました ✓';
+      window.setTimeout(() => $('copy-result').textContent=original, 1600);
+    } catch { setWarning('コピーができませんでした。ブラウザの権限をご確認ください。'); }
+  }
+
+  $('run-all').addEventListener('click',runAll);
+  $('step').addEventListener('click',nextStep);
+  $('reset').addEventListener('click',()=>{sim=freshState();setWarning('');render();});
+  $('copy-result').addEventListener('click',copyResult);
+  document.querySelectorAll('[data-example]').forEach(button => button.addEventListener('click',()=>{
+    $('source').value=button.dataset.example;
+    sim=freshState(); setWarning(''); render();
+    $('source').focus();
+  }));
+  $('source').addEventListener('keydown',ev=>{ if ((ev.ctrlKey || ev.metaKey) && ev.key==='Enter') { ev.preventDefault(); runAll(); } });
+  $('source').addEventListener('input',()=>{ if (sim.started) { sim=freshState();render(); } setWarning(''); });
+  for (const id of ['max-rounds','max-tokens']) $(id).addEventListener('change',()=>{ if (sim.started) { sim=freshState();render(); } setWarning(''); });
+
+  // Start with the whiteboard example so the UI already demonstrates every processing stage.
+  runAll();
+})();
+</script>
+</body>
+</html>
