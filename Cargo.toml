@@ -1,0 +1,14 @@
+[package]
+name = "ram-explorer"
+version = "0.1.0"
+edition = "2021"
+description = "Exhaustive and sampled analysis for Repeat After Me Game"
+license = "MIT"
+
+[[bin]]
+name = "ram-explorer"
+path = "src/main.rs"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

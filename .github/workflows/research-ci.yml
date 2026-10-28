@@ -1,0 +1,36 @@
+name: Research engine checks
+
+on:
+  push:
+    paths:
+      - 'Cargo.toml'
+      - 'src/**'
+      - 'tools/**'
+      - '.github/workflows/research-ci.yml'
+  pull_request:
+    paths:
+      - 'Cargo.toml'
+      - 'src/**'
+      - 'tools/**'
+      - '.github/workflows/research-ci.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Rust unit tests
+        run: cargo test --locked
+      - name: Build release binary
+        run: cargo build --release --locked
+      - name: Python reference tests
+        run: python3 tools/validate_reference.py
+      - name: Exhaustive smoke test (n = 1..5)
+        run: |
+          ./target/release/ram-explorer sweep --max-length 5 --threads 2 --out-dir /tmp/ram-results
+          python3 tools/analyze.py --input-dir /tmp/ram-results --no-plots
+      - name: Check whiteboard trace
+        run: |
+          ./target/release/ram-explorer trace 'RAM nRAM KON' | tee /tmp/trace.txt
+          grep -q 'ROUND 3: KON' /tmp/trace.txt
