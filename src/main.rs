@@ -169,7 +169,7 @@ impl Stats {
         self.max_tokens_seen = self.max_tokens_seen.max(o.max_tokens_seen);
         *self.histogram.entry((o.status, o.rounds)).or_insert(0) += 1;
         let small = OutcomeSummary::from(o);
-        let slot = &mut self.examples[o.status.index()];
+        let slot = &mut self.examples[small.status.index()];
         if slot.as_ref().is_none_or(|e| sample_score(&e.outcome) < sample_score(&small)) {
             *slot = Some(Example { input: input.clone(), outcome: small.clone() });
         }
