@@ -1,0 +1,79 @@
+name: Run large-scale sweep
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_length:
+        description: 'Maximum initial token length'
+        required: true
+        type: choice
+        options: ['8', '10', '12']
+        default: '10'
+      mode:
+        description: 'Exhaustive search or random sampling (at max_length)'
+        required: true
+        type: choice
+        options: ['exhaustive', 'sample']
+        default: 'exhaustive'
+      sample_size:
+        description: 'Number of draws when mode=sample'
+        required: true
+        type: number
+        default: 100000
+      max_tokens:
+        description: 'Token limit per state (100..100000)'
+        required: true
+        type: number
+        default: 10000
+      max_rounds:
+        description: 'Maximum completed rounds (1..100)'
+        required: true
+        type: number
+        default: 30
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release executable
+        run: cargo build --release --offline
+      - name: Run sweep
+        env:
+          MAX_LENGTH: ${{ inputs.max_length }}
+          MODE: ${{ inputs.mode }}
+          SAMPLE_SIZE: ${{ inputs.sample_size }}
+          MAX_TOKENS: ${{ inputs.max_tokens }}
+          MAX_ROUNDS: ${{ inputs.max_rounds }}
+        run: |
+          set -euo pipefail
+          if (( MAX_TOKENS < 100 || MAX_TOKENS > 100000 || MAX_ROUNDS < 1 || MAX_ROUNDS > 100 )); then
+            echo 'Limits out of range' >&2
+            exit 2
+          fi
+          EXTRA=()
+          if [[ "$MODE" == sample ]]; then
+            EXTRA=(--min-length "$MAX_LENGTH" --sample-size "$SAMPLE_SIZE")
+          fi
+          ./target/release/ram-explorer sweep \
+            --max-length "$MAX_LENGTH" \
+            --max-rounds "$MAX_ROUNDS" \
+            --max-tokens "$MAX_TOKENS" \
+            --threads 4 --out-dir results "${EXTRA[@]}" | tee results-log.txt
+          python3 tools/analyze.py --input-dir results --no-plots | tee analysis.txt
+      - name: Downloadable CSV results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-results
+          path: |
+            results/*.csv
+            results-log.txt
+            analysis.txt
+          if-no-files-found: warn
+          retention-days: 30

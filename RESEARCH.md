@@ -72,3 +72,7 @@ Rust内部ではトークンを2bit値（0,1,2,3）で表し、`nRAM` の反転�
 Web版は初期文字列が空である場合、入力エラーとします。Rust CLI の `trace` も空入力を受け付けません。全探索は長さ1から開始します。
 
 並列処理の順序に依存して同点の代表例が変わることがあります。集計件数は変わりません。検証コードは `src/main.rs` 内のRust単体テストと `tools/validate_reference.py` のPython参照実装を用意しています。GitHub ActionsでもRustのコンパイルとテストを行います。
+
+## GitHub上で実行する場合
+
+GitHubリポジトリの **Actions → Run large-scale sweep → Run workflow** で、最大トークン長（8 / 10 / 12）、全探索かサンプリングか、上限を指定して実行できます。結果はワークフローの `research-results` アーティファクト（CSV・分析テキスト）から取得できます。60分のタイムアウト付きで、GitHub Actionsの使用枠を消費します。Webサイト上ではなくGitHubのサーバーで計算されます。
